@@ -16,8 +16,8 @@
 
         // To Test Collision With
         const squares = [
-            new Square(new Vector2(20.0, 20.0), 30, 30),
-            new Square(new Vector2(70.0, 70.0), 40, 30),           
+            new Square(new Vector2(70.0, 20.0), 30, 30, 1, false),
+            new Square(new Vector2(70.0, 70.0), 40, 30, 1, true),           
         ]
 
         // Main Entry
@@ -34,8 +34,24 @@
                 // Iterate our Squares
                 for(let square of squares) {
 
-                    // Render
-                    square.Draw(context);
+                  // COMPUTE EXTERNAL FORCES
+
+                  // Gravitational Force = mass * -9.81
+                  let gravitationalForce = new Vector2(0.0, square.Mass * -9.81);
+
+                  // acceleration = force / mass
+                  let acceleration = gravitationalForce / square.Mass;
+
+                  // APPLY FORCES
+
+                  // velocity = acceleration * dt
+                  square.UpdateLinearVelocity(acceleration * this.WorldStep);
+
+                  // position = veloctity * dt
+                  square.UpdatePosition(this.WorldStep);
+
+                  // Render
+                  square.Draw(context);
 
                 }
 

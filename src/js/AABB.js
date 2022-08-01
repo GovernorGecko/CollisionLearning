@@ -3,9 +3,12 @@
         Vector2, Vector2
 */
 class AABB {
-    constructor(min, max) {
-        this.Min = min;
-        this.Max = max;
+    constructor(min, max,) {
+        this._min = min;
+        this._max = max;
+
+        // Simple Direction/Velocity transform
+        this._transform = new Vector2(0.0, 0.0);
     }
 
     // Center
@@ -16,14 +19,24 @@ class AABB {
         )
     }
 
+    // Maximum
+    get Max() {
+        return this._max.PlusN(this._transform)
+    }
+
+    // Minimum
+    get Min() {
+        return this._min.PlusN(this._transform)
+    }
+
     // Width
     get Width() {
-        return this.Max.X - this.Min.X;
+        return this._max.X - this._min.X;
     }
     
     // Height
     get Height() {
-        return this.Max.Y - this.Min.Y;
+        return this._max.Y - this._min.Y;
     }   
 
     // Are we Colliding with another AABB?
@@ -34,6 +47,14 @@ class AABB {
             this.Min.Y < otherAABB.Max.Y &&
             this.Max.Y > otherAABB.Min.Y
         );
+    }
+
+    // Transform by a given Vector2.  I know these
+    // usually are like Matrix4x4 or... Many other things
+    // that allow rotations and the such, but we just want
+    // direction/velocity.
+    Transform(transform) {
+        this._transform = transform;        
     }
 
 }
