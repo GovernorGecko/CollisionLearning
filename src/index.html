@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Collision Learning</title>
+    <script src="js/AABB.js"></script>
+    <script src="js/Square.js"></script>
+    <script src="js/Vector2.js"></script>    
+    <script>
+
+        /*
+
+            Simple Collision Learning in Javascript
+
+        */        
+
+        // To Test Collision With
+        const squares = [
+            new Square(new Vector2(20.0, 20.0), 30, 30),
+            new Square(new Vector2(70.0, 70.0), 40, 30),           
+        ]
+
+        // Main Entry
+        const collisionLearning = () => {
+        
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+        
+            const engine = () => {
+
+                // Clear our Canvas
+                context.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Iterate our Squares
+                for(let square of squares) {
+
+                    // Render
+                    square.Draw(context);
+
+                }
+
+                // Keep that engine stepping!
+                //window.requestAnimationFrame(engine);
+            
+            }
+
+            // Start the Engine
+            engine();
+
+        }
+        
+    </script>
+    <style>
+      canvas { border: 1px solid black; }
+    </style>
+  </head>
+  <body onload="collisionLearning();">
+    <canvas id="canvas" width="150" height="150"></canvas>
+  </body>
+</html>
