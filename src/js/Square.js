@@ -1,37 +1,86 @@
 /*
     Simple Square
-        Vector2, Float, Float
+        Vector2, Float, Float, Boolean
 
     Used for rendering purposes of the Collision Engine
 */
 class Square {
-    constructor(position, width, height) {
+    constructor(position, width, height, mass, isStatic) {
 
-        // We won't store any of the passed in values,
-        // all can be retrieved from the underlyingAABB
-        // object.
+        // Mass, used for collisions to determine how much we move.
+        this.Mass = mass;
+        this.InverseMass = isStatic || mass === 0 ? 0 : 1 / mass;
+
+        // Linear Velocity of this object
+        this.LinearVelocity = new Vector2(0, 0);
+
+        // Store our Position, we'll use it Transform
+        this.Position = position;
+
+        // Is this a Static Square?  Doesn't move, acts like ground.
+        this.IsStatic = isStatic;
+
+        // Simplify for later addition
         let halfWidth = width / 2;
         let halfHeight = height / 2;
-        this.AABB = new AABB(
+
+        // Create our AABB.
+        this._AABB = new AABB(
             new Vector2(
-                position.X - halfWidth,
-                position.Y - halfHeight
+                -halfWidth,
+                -halfHeight
             ),
             new Vector2(
-                position.X + halfWidth,
-                position.Y + halfHeight
+                halfWidth,
+                halfHeight
             )
         );
+        this._AABB.Transform(this.Position);
+
+    }
+
+    // Applies the given Linear Impulse
+    ApplyLinearImpulse(impulse) {
+
+        // Can't apply Impulses to Static Objects
+        if (this.IsStatic)
+        {
+            return;
+        }
+
+        // Update our Velocity, based off the impulse
+        this.LinearVelocity.Plus(impulse * this.InverseMass);
+
     }
 
     // Draws our AABB
-    Draw(context) {
+    Draw(context) {        
         context.strokeRect(
-            this.AABB.Min.X,
-            this.AABB.Min.Y,
-            this.AABB.Width,
-            this.AABB.Height
+            this._AABB.Min.X,
+            this._AABB.Min.Y,
+            this._AABB.Width,
+            this._AABB.Height
         );
+    }
+
+    // Update our Linear Velocity, given a velocity
+    UpdateLinearVelocity(velocity) {
+
+        // Static objects don't have Velocity
+        if (!this.IsStatic)
+        {
+            this.LinearVelocity.Add(velocity);
+        }
+
+    }
+
+    // Updates our Position, using our Linear Velocity and the
+    // given Frame Step
+    UpdatePosition(step) {
+        if(!this.IsStatic) {
+            //this.Position += this.LinearVelocity * step;
+            this._AABB.Transform(this.Position);
+        }
     }
 
 }
