@@ -15,18 +15,10 @@
         */        
 
         // To Test Collision With
-        const boxes = [
-            new AABB(
-                new Vector2(0, 0),
-                new Vector2(30, 30)
-            ),
-            new AABB(
-                new Vector2(50, 50),
-                new Vector2(100, 100),
-            )            
+        const squares = [
+            new Square(new Vector2(20.0, 20.0), 30, 30),
+            new Square(new Vector2(70.0, 70.0), 40, 30),           
         ]
-
-        let testSquare = new Square(new Vector2(0.0, 0.0), 1.0, 1.0)
 
         // Main Entry
         const collisionLearning = () => {
@@ -39,12 +31,11 @@
                 // Clear our Canvas
                 context.clearRect(0, 0, canvas.width, canvas.height);
 
-                // Iterate our Boxes
-                for(let box of boxes) {
+                // Iterate our Squares
+                for(let square of squares) {
 
                     // Render
-                    //box.Draw(context);
-
+                    square.Draw(context);
 
                 }
 

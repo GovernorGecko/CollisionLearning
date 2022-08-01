@@ -1,17 +1,27 @@
-// Simple AABB
-// Vector2, Vector2  
+/*
+    Simple AABB
+        Vector2, Vector2
+*/
 class AABB {
     constructor(min, max) {
         this.Min = min;
         this.Max = max;
     }
 
-    // Our Width
+    // Center
+    get Center() {
+        return new Vector2(
+            this.Min.X + (this.Width / 2),
+            this.Min.Y + (this.Height / 2)
+        )
+    }
+
+    // Width
     get Width() {
         return this.Max.X - this.Min.X;
     }
     
-    // Our Height
+    // Height
     get Height() {
         return this.Max.Y - this.Min.Y;
     }   
