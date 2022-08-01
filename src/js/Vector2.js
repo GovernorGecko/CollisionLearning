@@ -8,60 +8,81 @@ class Vector2 {
         this.Y = y;
     }
 
-    // Multiplies the given value by our X/Y
-    // Returns a new Copy of our Vector2
+    // Operator Overloads... sort of.
+    _Operator(value, returnCopy, operation) {
+        const instance = returnCopy ? new Vector2(this.X, this.Y) : this;
+        if(value instanceof Vector2) {
+            instance.X = operation(instance.X, value.X);
+            instance.Y = operation(instance.Y, value.Y);
+        }
+        else {
+            instance.X = operation(instance.X, value);
+            instance.Y = operation(instance.Y, value);
+        }
+        return instance;
+    }
+
+    // Add Operator
+    _AddOp(value1, value2) {
+        return value1 + value2;
+    }
+
+    // Add return New
+    AddN(value) {
+        return this._Operator(value, true, this._AddOp)
+    }
+
+    // Add return This
+    Add(value) {
+        return this._Operator(value, false, this._AddOp);
+    }
+
+    // Divide Operator, check for 0s
+    _DivideOp(value1, value2) {
+        if(value1 === 0 || value2 === 0) {
+            return 0;
+        }
+        return value1 / value2;
+    }
+
+    // Divide return New
+    DivideN(value) {
+        return this._Operator(value, true, this._DivideOp);
+    }
+
+    // Divide return This
+    Divide(value) {
+        return this._Operator(value, false, this._DivideOp);
+    }
+
+    // Multiply Operator
+    _MultiplyOp(value1, value2) {
+        return value1 * value2;
+    }
+
+    // Multiply return New
     MultiplyN(value) {
-        return this._Multiply(value, true);
+        return this._Operator(value, true, this._MultiplyOp);
     }
 
-    // Multiplies the given value by our X/Y
-    // Returns us modified.
+    // Multiply return This
     Multiply(value) {
-        return this._Multiply(value, false);
+        return this._Multiply(value, false, this._MultiplyOp);
     }
 
-    // Multiplies the given value by our X/Y
-    // This is the internal function that handles
-    // returning us or a copy that has been modified.
-    _Multiply(value, returnCopy) {
-        const instance = returnCopy ? new Vector2(this.X, this.Y) : this;
-        if(value instanceof Vector2) {
-            instance.X *= value.X;
-            instance.Y *= value.Y;
-        }
-        else {
-            instance.X *= value;
-            instance.Y *= value;
-        }
-        return instance;
+    // Subtract Operator
+    _SubtractOp(value1, value2) {
+        return value1 - value2;
     }
 
-    // Adds the given value to our X/Y
-    // Returns a new Copy of our Vector2
-    PlusN(value) {
-        return this._Plus(value, true);
+    // Subtract return New
+    SubtractN(value) {
+        return this._Operator(value, true, this._SubtractOp);
     }
 
-    // Adds the given value to our X/Y
-    // Returns us modified.
-    Plus(value) {
-        return this._Plus(value, false);
-    }
-
-    // Adds the given value to our X/Y
-    // This is the internal function that handles
-    // returning us or a copy that has been modified.
-    _Plus(value, returnCopy) {
-        const instance = returnCopy ? new Vector2(this.X, this.Y) : this;
-        if(value instanceof Vector2) {
-            instance.X += value.X;
-            instance.Y += value.Y;
-        }
-        else {
-            instance.X += value;
-            instance.Y += value;
-        }
-        return instance;
+    // Subtract return This
+    Subtract(value) {
+        return this._Operator(value, false, this._SubtractOp);
     }
 
 }

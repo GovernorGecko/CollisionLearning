@@ -21,12 +21,12 @@ class AABB {
 
     // Maximum
     get Max() {
-        return this._max.PlusN(this._transform)
+        return this._max.AddN(this._transform)
     }
 
     // Minimum
     get Min() {
-        return this._min.PlusN(this._transform)
+        return this._min.AddN(this._transform)
     }
 
     // Width

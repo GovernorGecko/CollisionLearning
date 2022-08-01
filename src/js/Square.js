@@ -9,6 +9,7 @@ class Square {
 
         // Mass, used for collisions to determine how much we move.
         this.Mass = mass;
+        this.InverseMass = isStatic || mass === 0 ? 0 : 1 / mass;
 
         // Linear Velocity of this object
         this.LinearVelocity = new Vector2(0, 0);
@@ -48,7 +49,7 @@ class Square {
         }
 
         // Update our Velocity, based off the impulse
-        this.LinearVelocity.Plus(impulse * this.GetInverseMass());
+        this.LinearVelocity.Plus(impulse * this.InverseMass);
 
     }
 
@@ -62,25 +63,13 @@ class Square {
         );
     }
 
-    // Inverse Mass
-    GetInverseMass() {
-
-        // Static Objects have a Mass of 0
-        if(this.IsStatic) {
-            return 0;
-        }
-        
-        return 1 / this.Mass;
-
-    }
-
     // Update our Linear Velocity, given a velocity
     UpdateLinearVelocity(velocity) {
 
         // Static objects don't have Velocity
         if (!this.IsStatic)
         {
-            this.LinearVelocity.Plus(velocity);
+            this.LinearVelocity.Add(velocity);
         }
 
     }
