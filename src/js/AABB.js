@@ -40,12 +40,12 @@ class AABB {
     }   
 
     // Are we Colliding with another AABB?
-    CollidesWithAABB(otherAABB) {
+    CollidesWithAABB(other) {
         return (
-            this.Min.X < otherAABB.Max.X &&
-            this.Max.X > otherAABB.Min.X &&
-            this.Min.Y < otherAABB.Max.Y &&
-            this.Max.Y > otherAABB.Min.Y
+            this.Min.X < other.Max.X &&
+            this.Max.X > other.Min.X &&
+            this.Min.Y < other.Max.Y &&
+            this.Max.Y > other.Min.Y
         );
     }
 
