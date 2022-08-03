@@ -106,7 +106,7 @@ class Vector2 {
         return Math.sqrt(xSquared + ySquared);
     }
 
-    // Normalizethis Vector2
+    // Normalize this Vector2
     Normalize() {
         return this.Divide(this.Magnitude());
     }

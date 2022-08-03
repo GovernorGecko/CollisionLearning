@@ -24,9 +24,19 @@ class AABB {
         return this._max.AddN(this._transform)
     }
 
+    // Maximum Base
+    get MaxBase() {
+        return this._max;
+    }
+
     // Minimum
     get Min() {
         return this._min.AddN(this._transform)
+    }
+
+    // Minimum Base
+    get MinBase() {
+        return this._min;
     }
 
     // Width
@@ -37,7 +47,7 @@ class AABB {
     // Height
     get Height() {
         return this._max.Y - this._min.Y;
-    }   
+    } 
 
     // Are we Colliding with another AABB?
     CollidesWithAABB(other) {

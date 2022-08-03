@@ -4,6 +4,7 @@
     <meta charset="utf-8"/>
     <title>Collision Learning</title>
     <script src="js/AABB.js"></script>
+    <script src="js/Manifold.js"></script>
     <script src="js/Square.js"></script>
     <script src="js/Vector2.js"></script>    
     <script>
@@ -12,102 +13,66 @@
 
             Simple Collision Learning in Javascript    
 
-            in 3D space
-
-            If vectors a = [xa, ya, za], b = [xb, yb, zb], then:
-
-            α = arccos[(xa * xb + ya * yb + za * zb) / (√(xa2 + ya2 + za2) * √(xb2 + yb2 + zb2))]
-
-            Angle between two 3D vectors
-
-            Vectors represented by coordinates:
-            3D Vector in a component form
-            a = [xa, ya, za] , b = [xb, yb, zb]
-
-            angle = arccos[(xa * xb + ya * yb + za * zb) / (√(xa2 + ya2 + za2) * √(xb2 + yb2 + zb2))]
-
-            Vectors between a starting and terminal point:
-            3D Vector. Notation: starting and terminal point
-            For vector a: A = [x1, y1, z1], B = [x2, y2, z2],
-
-            so a = [x2 - x1, y2 - y1, z2 - z1]
-
-            For vector b: C = [x3, y3, z3], D = [x4, y4, z4]
-
-            so b = [x4 - x3, y4 - y3, z4 - z3]
-
-            Find the final formula analogically to the 2D version:
-
-            angle = arccos{[(x2 - x1) * (x4 - x3) + (y2 - y1) * (y4 - y3) + (z2 - z1) * (z4 - z3)] / [√((x2 - x1)2 + (y2 - y1)2+ (z2 - z1)2) * √((x4 - x3)2 + (y4 - y3)2 + (z4 - z3)2)]}
-
         */
 
-        // Currently just Manifold, but end goal would be Collision and Manifold
-        // generation... I guess.
         // Manifold Generation
-        /*
-        struct Manifold
-        {
-          Object *A;
-          Object *B;
-          float penetration;
-          Vec2 normal;
-        };
-        */
+        // bool AABBvsAABB( Manifold *m )
         const AABBvsAABB = (objectA, objectB) => {
 
-          let manifold = {
-            A: objectA,
-            B: objectB,
-            normal: new Vector2(0, 0),
-            penetration: 0,
-          }
+          // Did we detect a collision?
+          let collided = false;
+
+          // Return Manifold
+          const manifold = new Manifold(objectA, objectB, 0, new Vector2(0, 0));
           
-          // Vector from A to B
-          const n = objectB.Position.SubtractN(objectA.Position);
+          // Distance vector from A to B
+          const distance = objectB.Position.SubtractN(objectA.Position);
           
           // Calculate half extents along x axis for each object
-          let aExtent = (objectA._AABB.Max.X - objectA._AABB.Min.X) / 2;
-          let bExtent = (objectB._AABB.Max.X - objectB._AABB.Min.X) / 2;
+          let xExtentA = (objectA._AABB.Max.X - objectA._AABB.Min.X) / 2;
+          let xExtentB = (objectB._AABB.Max.X - objectB._AABB.Min.X) / 2;
           
           // Calculate overlap on x axis
-          let xOverlap = aExtent + bExtent - Math.abs(n.X);
+          let xOverlap = xExtentA + xExtentB - Math.abs(distance.X);
           
           // SAT test on x axis
           if(xOverlap > 0) {
 
             // Calculate half extents along x axis for each object
-            aExtent = (objectA._AABB.Max.Y - objectA._AABB.Min.Y) / 2;
-            bExtent = (objectB._AABB.Max.Y - objectB._AABB.Min.Y) / 2;
+            let yExtentA = (objectA._AABB.Max.Y - objectA._AABB.Min.Y) / 2;
+            let yExtentB = (objectB._AABB.Max.Y - objectB._AABB.Min.Y) / 2;
           
             // Calculate overlap on y axis
-            let yOverlap = aExtent + bExtent - Math.abs(n.Y);
+            let yOverlap = yExtentA + yExtentB - Math.abs(distance.Y);
           
             // SAT test on y axis
             if(yOverlap > 0) {
 
               // Find out which axis is axis of least penetration
-              if(xOverlap > yOverlap) {
+              if(xOverlap < yOverlap) {
 
                 // Point towards B knowing that n points from A to B
-                if(n.X < 0)
-                  manifold.normal = new Vector2(-1, 0);
-                else
-                  manifold.normal = new Vector2(0, 0);
-                manifold.penetration = xOverlap
-                //return true
+                if(distance.X < 0) {
+                  manifold.Normal = new Vector2(-1, 0);
+                }
+                else {
+                  manifold.Normal = new Vector2(0, 0);
+                }
+                manifold.Penetration = xOverlap;
+                collided = true;
 
               }
               else {
 
                 // Point toward B knowing that n points from A to B
-                if(n.Y < 0)
-                  manifold.normal = new Vector2(0, -1);
-                else
-                  manifold.normal = new Vector2(0, 1);
-
-                manifold.penetration = yOverlap;
-                //return true
+                if(distance.Y < 0) {
+                  manifold.Normal = new Vector2(0, -1);
+                }
+                else {
+                  manifold.Normal = new Vector2(0, 1);
+                }
+                manifold.Penetration = yOverlap;
+                collided = true;
 
               }
 
@@ -115,68 +80,64 @@
 
           }
 
-          return manifold;
+          return {collided, manifold};
 
         }
 
-        const PositionalCorrection = (objectA, objectB) => {
 
-          // Penetration Distance, will need to be passed in.  This is based on
-          // the center of our object, far into the other object it gets.
-          const penetrationDepth = 1;
-
-          // We'll need to consider Collision Penetration in the long run.
-          // The Object that has more penetration, will be subtracted from.
-          const collisionNormal = objectA.Position.SubtractN(objectB.Position);
+        // To adjust for "Sinking" into 0 Mass Objects
+        const PositionalCorrection = manifold => { //(objectA, objectB) => {
 
           // usually 20% to 80%
           const percent = 0.2;
-                  
-          const correction = collisionNormal.MultiplyN((penetrationDepth / (objectA.InverseMass + objectB.InverseMass)) * percent)
-          objectA.Position.Subtract(correction.MultiplyN(objectA.InverseMass));
-          objectB.Position.Add(correction.MultiplyN(objectB.InverseMass));
+
+          // usually 0.01 to 0.1
+          const slop = 0.01;
+          
+          // Calculate the Correction
+          const correction = manifold.Normal.MultiplyN((Math.max(manifold.Penetration - slop, 0.0) / (manifold.ObjectA.InverseMass + manifold.ObjectB.InverseMass)) * percent)
+
+          // Update Positions Directly
+          manifold.ObjectA.Position.Subtract(correction.MultiplyN(manifold.ObjectA.InverseMass));
+          manifold.ObjectB.Position.Add(correction.MultiplyN(manifold.ObjectB.InverseMass));
+
         }
+
+        
               
         // Resolve the Collision between two Objects
-        const ResolveCollision = (objectA, objectB) => {
-          
-          let manifold = AABBvsAABB(objectA, objectB);
-          //console.log(manifold);   
-
-          // We'll need to consider Collision Penetration in the long run.
-          // The Object that has more penetration, will be subtracted from.
-          // manifold.normal;
-          const collisionNormal = objectB.Position.SubtractN(objectA.Position);
-          collisionNormal.Normalize();
+        const ResolveCollision = manifold => { //objectA, objectB) => {
 
           // Calculate relative velocity
-          const relativeVelocity = objectB.LinearVelocity.SubtractN(objectA.LinearVelocity);
+          const relativeVelocity = manifold.ObjectB.LinearVelocity.SubtractN(manifold.ObjectA.LinearVelocity);
 
           // Calculate relative velocity in terms of the normal direction
-          const velocityAlongNormal = relativeVelocity.DotProduct(collisionNormal);
+          const velocityAlongNormal = relativeVelocity.DotProduct(manifold.Normal);
         
           // Do not resolve if velocities are separating
           if(velocityAlongNormal > 0)
             return;
 
           // Calculate restitution
-          const minimumRestitution = Math.min(objectA.Restitution, objectB.Restitution);
+          const minimumRestitution = Math.min(manifold.ObjectA.Restitution, manifold.ObjectB.Restitution);
 
           // Calculate impulse scalar
           let impulseScalar = -(1 + minimumRestitution) * velocityAlongNormal;
-          impulseScalar /= (objectA.InverseMass + objectB.InverseMass);
+
+          // Distributes our Impulse Scalar, by each object's Mass
+          impulseScalar /= (manifold.ObjectA.InverseMass + manifold.ObjectB.InverseMass);
 
           // Apply impulse
-          const impulse = collisionNormal.MultiplyN(impulseScalar);
-          objectA.ApplyLinearImpulse(impulse.MultiplyN(-1));
-          objectB.ApplyLinearImpulse(impulse);
+          const impulse = manifold.Normal.MultiplyN(impulseScalar);
+          manifold.ObjectA.ApplyLinearImpulse(impulse.MultiplyN(-1));
+          manifold.ObjectB.ApplyLinearImpulse(impulse);
 
         }
 
         // To Test Collision With
         const squares = [
-            new Square(new Vector2(70.0, 120.0), 30, 30, 1, 1, false),
-            new Square(new Vector2(70.0, 70.0), 40, 30, 1, 1, true),
+            new Square(new Vector2(70.0, 120.0), 30, 30, 1, 0.1, false),
+            new Square(new Vector2(70.0, 70.0), 40, 30, 1, 0.9, true),
         ]
 
         // Main Entry
@@ -200,10 +161,14 @@
                 /*
                   CHECK COLLISIONS
                 */
-                for(let squareOther of squares) {
-                  if(square != squareOther && square._AABB.CollidesWithAABB(squareOther._AABB)) {
-                    ResolveCollision(square, squareOther);
-                    //PositionalCorrection(square, squareOther);
+                for(let otherSquare of squares) {
+                  if(square != otherSquare) {
+                    let {collided, manifold} = AABBvsAABB(square, otherSquare);
+                    //square._AABB.CollidesWithAABB(squareOther._AABB)) {
+                    if(collided) {                    
+                      ResolveCollision(manifold); //square, squareOther);
+                      PositionalCorrection(manifold); //square, squareOther);
+                    }
                   }
                 }
 
