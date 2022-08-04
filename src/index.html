@@ -15,7 +15,7 @@
 
         */
 
-        // Manifold Generation
+        // Collision/Manifold Generation
         // bool AABBvsAABB( Manifold *m )
         const AABBvsAABB = (objectA, objectB) => {
 
@@ -84,126 +84,122 @@
 
         }
 
-
-        // To adjust for "Sinking" into 0 Mass Objects
-        const PositionalCorrection = manifold => { //(objectA, objectB) => {
-
-          // usually 20% to 80%
-          const percent = 0.2;
-
-          // usually 0.01 to 0.1
-          const slop = 0.01;
-          
-          // Calculate the Correction
-          const correction = manifold.Normal.MultiplyN((Math.max(manifold.Penetration - slop, 0.0) / (manifold.ObjectA.InverseMass + manifold.ObjectB.InverseMass)) * percent)
-
-          // Update Positions Directly
-          manifold.ObjectA.Position.Subtract(correction.MultiplyN(manifold.ObjectA.InverseMass));
-          manifold.ObjectB.Position.Add(correction.MultiplyN(manifold.ObjectB.InverseMass));
-
-        }
-
-        
-              
-        // Resolve the Collision between two Objects
-        const ResolveCollision = manifold => { //objectA, objectB) => {
-
-          // Calculate relative velocity
-          const relativeVelocity = manifold.ObjectB.LinearVelocity.SubtractN(manifold.ObjectA.LinearVelocity);
-
-          // Calculate relative velocity in terms of the normal direction
-          const velocityAlongNormal = relativeVelocity.DotProduct(manifold.Normal);
-        
-          // Do not resolve if velocities are separating
-          if(velocityAlongNormal > 0)
-            return;
-
-          // Calculate restitution
-          const minimumRestitution = Math.min(manifold.ObjectA.Restitution, manifold.ObjectB.Restitution);
-
-          // Calculate impulse scalar
-          let impulseScalar = -(1 + minimumRestitution) * velocityAlongNormal;
-
-          // Distributes our Impulse Scalar, by each object's Mass
-          impulseScalar /= (manifold.ObjectA.InverseMass + manifold.ObjectB.InverseMass);
-
-          // Apply impulse
-          const impulse = manifold.Normal.MultiplyN(impulseScalar);
-          manifold.ObjectA.ApplyLinearImpulse(impulse.MultiplyN(-1));
-          manifold.ObjectB.ApplyLinearImpulse(impulse);
-
-        }
-
         // To Test Collision With
         const squares = [
             new Square(new Vector2(70.0, 120.0), 30, 30, 1, 0.1, false),
             new Square(new Vector2(70.0, 70.0), 40, 30, 1, 0.9, true),
         ]
 
-        // Main Entry
-        const collisionLearning = () => {
+        /*
+          Main Entry Point
+        */
+        const CollisionLearning = () => {
         
-            const canvas = document.getElementById('canvas');
-            const context = canvas.getContext('2d');
+          const canvas = document.getElementById('canvas');
+          const context = canvas.getContext('2d');
+          
+          const fps = 100;
+
+          // Our Delta Time, which we "pass" to Physics/Render
+          const dt = 1 / fps;
+
+          // In Javascript, the requestAnimationFrame returns a Milliseconds
+          // timestamp and we calculate physics in Seconds.  The variable below
+          // is simply for the accumulator so it bridges that difference.
+          const step = dt * 1000;
+
+          // Spiral of Death clamp
+          // Avoid spiral of death and clamp dt, thus clamping
+          // how many times the UpdatePhysics can be called in
+          // a single game loop.
+          // Needs testing.  Example was an arbitrary number of
+          // 0.2 (which had to be 20 in our millisecond world)
+          // but this doesn't account for different than 100 fps.
+          const spiralClamp = step * 5;
+
+          let accumulator = 0;
+          let lastTimestamp = 0;
+      
+          const Engine = timestamp => {         
             
-            const step = 1 / 60;
-        
-            const engine = msLastFrame => {
+            // Accumulator
+            accumulator += timestamp - lastTimestamp;
+            lastTimestamp = timestamp;
 
-              //console.log(timestamp);
+            if(accumulator > spiralClamp)
+              accumulator = spiralClamp;
 
-              // Clear our Canvas
-              context.clearRect(0, 0, canvas.width, canvas.height);
-
-              // Iterate our Squares
-              for(let square of squares) {
-
-                /*
-                  CHECK COLLISIONS
-                */
-                for(let otherSquare of squares) {
-                  if(square != otherSquare) {
-                    let {collided, manifold} = AABBvsAABB(square, otherSquare);
-                    //square._AABB.CollidesWithAABB(squareOther._AABB)) {
-                    if(collided) {                    
-                      ResolveCollision(manifold); //square, squareOther);
-                      PositionalCorrection(manifold); //square, squareOther);
-                    }
-                  }
-                }
-
-                /*
-                  COMPUTE EXTERNAL FORCES
-                */
-
-                // Gravitational Force = mass * -9.81
-                let gravitationalForce = new Vector2(0.0, square.Mass * -9.81);
-
-                // acceleration = force / mass
-                let acceleration = gravitationalForce.DivideN(square.Mass);
-
-                /*
-                  APPLY FORCES
-                */              
-                
-                // velocity = acceleration * dt
-                square.UpdateLinearVelocity(acceleration.MultiplyN(step));
-
-                // position = veloctity * dt
-                square.UpdatePosition(step);
-
-                // Render
-                square.Draw(context, canvas);
-
-              }
-
-              // Keep that engine stepping!
-              window.requestAnimationFrame(engine);
-            
+            // Physics
+            while(accumulator > step) {
+              Physics();
+              accumulator -= step;
             }
 
-            // Start the Engine
-            engine();
+            // Render
+            Render();
+
+            // Engine
+            window.requestAnimationFrame(Engine);              
+          
+          }
+
+          /*
+            Physics
+          */
+          const Physics = () => {
+
+            for(let square of squares) {
+
+              /*
+                CHECK COLLISIONS
+              */
+              for(let otherSquare of squares) {
+                if(square != otherSquare) {
+                  let {collided, manifold} = AABBvsAABB(square, otherSquare);
+                  if(collided) {     
+                    manifold.Resolve();
+                  }
+                }
+              }
+
+              // COMPUTE EXTERNAL FORCES             
+
+              // Gravitational Force = mass * -9.81
+              let gravitationalForce = new Vector2(0.0, square.Mass * -9.81);
+
+              // acceleration = force / mass
+              let acceleration = gravitationalForce.DivideN(square.Mass);
+
+              
+              // APPLY FORCES              
+
+              // velocity = acceleration * dt
+              square.UpdateLinearVelocity(acceleration.MultiplyN(dt));
+
+              // position = veloctity * dt
+              square.UpdatePosition(dt);                
+
+            }
+
+          }
+
+          /*
+            Render
+          */
+          const Render = () => {
+
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw
+            for(let square of squares) {                
+              square.Draw(context, canvas);
+            }
+
+          }
+
+          // Start the Engine, need to pass 0 otherwise Timestamp
+          // will start undefined.
+          Engine(0);
 
         }
         
@@ -212,7 +208,7 @@
       canvas { border: 1px solid black; }
     </style>
   </head>
-  <body onload="collisionLearning();">
+  <body onload="CollisionLearning();">
     <canvas id="canvas" width="150" height="150"></canvas>
   </body>
 </html>
