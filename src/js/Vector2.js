@@ -67,7 +67,7 @@ class Vector2 {
 
     // Multiply return This
     Multiply(value) {
-        return this._Multiply(value, false, this._MultiplyOp);
+        return this._Operator(value, false, this._MultiplyOp);
     }
 
     // Subtract Operator
@@ -83,6 +83,32 @@ class Vector2 {
     // Subtract return This
     Subtract(value) {
         return this._Operator(value, false, this._SubtractOp);
+    }
+
+    // Angle Between Two Vectors, in Radians
+    // α = arccos[(a · b) / (|a| * |b|)]
+    // angle = arccos[(xa * xb + ya * yb) / (√(pow(xa, 2) + pow(ya, 2)) * √(pow(xb, 2) + pow(yb, 2)))]
+    AngleBetweenVectors(vector) {
+        return Math.acos(this.DotProduct(vector) / (this.Magnitude() * vector.Magnitude()));
+    }
+
+    // Dot/Cross Product Between us and another Vector2
+    // v1.x * v2.x + v1.y * v2.y;
+    DotProduct(vector) {
+        return (this.X * vector.X) + (this.Y * vector.Y);
+    }
+
+    // Magnitude of this Vector
+    // ||v|| = √(pow(X, 2), pow(Y, 2))
+    Magnitude() {
+        let xSquared = Math.pow(this.X, 2);
+        let ySquared = Math.pow(this.Y, 2);
+        return Math.sqrt(xSquared + ySquared);
+    }
+
+    // Normalize this Vector2
+    Normalize() {
+        return this.Divide(this.Magnitude());
     }
 
 }

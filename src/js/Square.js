@@ -5,7 +5,7 @@
     Used for rendering purposes of the Collision Engine
 */
 class Square {
-    constructor(position, width, height, mass, isStatic) {
+    constructor(position, width, height, mass, restitution, isStatic) {
 
         // Mass, used for collisions to determine how much we move.
         this.Mass = mass;
@@ -19,6 +19,9 @@ class Square {
 
         // Is this a Static Square?  Doesn't move, acts like ground.
         this.IsStatic = isStatic;
+
+        // Restitution, or bounciness
+        this.Restitution = restitution;
 
         // Simplify for later addition
         let halfWidth = width / 2;
@@ -42,34 +45,29 @@ class Square {
     // Applies the given Linear Impulse
     ApplyLinearImpulse(impulse) {
 
-        // Can't apply Impulses to Static Objects
-        if (this.IsStatic)
+        if (!this.IsStatic)
         {
-            return;
-        }
-
-        // Update our Velocity, based off the impulse
-        this.LinearVelocity.Plus(impulse * this.InverseMass);
+            this.LinearVelocity.Add(impulse.MultiplyN(this.InverseMass));
+        }       
 
     }
 
     // Draws our AABB
-    Draw(context) {        
+    Draw(context, canvas) {        
         context.strokeRect(
             this._AABB.Min.X,
-            this._AABB.Min.Y,
+            canvas.height - this._AABB.Min.Y,
             this._AABB.Width,
             this._AABB.Height
         );
-    }
+    }    
 
     // Update our Linear Velocity, given a velocity
     UpdateLinearVelocity(velocity) {
 
-        // Static objects don't have Velocity
         if (!this.IsStatic)
         {
-            this.LinearVelocity.Add(velocity);
+            this.LinearVelocity.Add(velocity);            
         }
 
     }
@@ -77,10 +75,17 @@ class Square {
     // Updates our Position, using our Linear Velocity and the
     // given Frame Step
     UpdatePosition(step) {
+
         if(!this.IsStatic) {
-            //this.Position += this.LinearVelocity * step;
+            
+            // Update our position.
+            this.Position.Add(this.LinearVelocity.MultiplyN(step));
+
+            // Update our AABB, for Collision.
             this._AABB.Transform(this.Position);
+
         }
+
     }
 
 }

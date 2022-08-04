@@ -4,20 +4,140 @@
     <meta charset="utf-8"/>
     <title>Collision Learning</title>
     <script src="js/AABB.js"></script>
+    <script src="js/Manifold.js"></script>
     <script src="js/Square.js"></script>
     <script src="js/Vector2.js"></script>    
     <script>
 
         /*
 
-            Simple Collision Learning in Javascript
+            Simple Collision Learning in Javascript    
 
-        */        
+        */
+
+        // Manifold Generation
+        // bool AABBvsAABB( Manifold *m )
+        const AABBvsAABB = (objectA, objectB) => {
+
+          // Did we detect a collision?
+          let collided = false;
+
+          // Return Manifold
+          const manifold = new Manifold(objectA, objectB, 0, new Vector2(0, 0));
+          
+          // Distance vector from A to B
+          const distance = objectB.Position.SubtractN(objectA.Position);
+          
+          // Calculate half extents along x axis for each object
+          let xExtentA = (objectA._AABB.Max.X - objectA._AABB.Min.X) / 2;
+          let xExtentB = (objectB._AABB.Max.X - objectB._AABB.Min.X) / 2;
+          
+          // Calculate overlap on x axis
+          let xOverlap = xExtentA + xExtentB - Math.abs(distance.X);
+          
+          // SAT test on x axis
+          if(xOverlap > 0) {
+
+            // Calculate half extents along x axis for each object
+            let yExtentA = (objectA._AABB.Max.Y - objectA._AABB.Min.Y) / 2;
+            let yExtentB = (objectB._AABB.Max.Y - objectB._AABB.Min.Y) / 2;
+          
+            // Calculate overlap on y axis
+            let yOverlap = yExtentA + yExtentB - Math.abs(distance.Y);
+          
+            // SAT test on y axis
+            if(yOverlap > 0) {
+
+              // Find out which axis is axis of least penetration
+              if(xOverlap < yOverlap) {
+
+                // Point towards B knowing that n points from A to B
+                if(distance.X < 0) {
+                  manifold.Normal = new Vector2(-1, 0);
+                }
+                else {
+                  manifold.Normal = new Vector2(0, 0);
+                }
+                manifold.Penetration = xOverlap;
+                collided = true;
+
+              }
+              else {
+
+                // Point toward B knowing that n points from A to B
+                if(distance.Y < 0) {
+                  manifold.Normal = new Vector2(0, -1);
+                }
+                else {
+                  manifold.Normal = new Vector2(0, 1);
+                }
+                manifold.Penetration = yOverlap;
+                collided = true;
+
+              }
+
+            }
+
+          }
+
+          return {collided, manifold};
+
+        }
+
+
+        // To adjust for "Sinking" into 0 Mass Objects
+        const PositionalCorrection = manifold => { //(objectA, objectB) => {
+
+          // usually 20% to 80%
+          const percent = 0.2;
+
+          // usually 0.01 to 0.1
+          const slop = 0.01;
+          
+          // Calculate the Correction
+          const correction = manifold.Normal.MultiplyN((Math.max(manifold.Penetration - slop, 0.0) / (manifold.ObjectA.InverseMass + manifold.ObjectB.InverseMass)) * percent)
+
+          // Update Positions Directly
+          manifold.ObjectA.Position.Subtract(correction.MultiplyN(manifold.ObjectA.InverseMass));
+          manifold.ObjectB.Position.Add(correction.MultiplyN(manifold.ObjectB.InverseMass));
+
+        }
+
+        
+              
+        // Resolve the Collision between two Objects
+        const ResolveCollision = manifold => { //objectA, objectB) => {
+
+          // Calculate relative velocity
+          const relativeVelocity = manifold.ObjectB.LinearVelocity.SubtractN(manifold.ObjectA.LinearVelocity);
+
+          // Calculate relative velocity in terms of the normal direction
+          const velocityAlongNormal = relativeVelocity.DotProduct(manifold.Normal);
+        
+          // Do not resolve if velocities are separating
+          if(velocityAlongNormal > 0)
+            return;
+
+          // Calculate restitution
+          const minimumRestitution = Math.min(manifold.ObjectA.Restitution, manifold.ObjectB.Restitution);
+
+          // Calculate impulse scalar
+          let impulseScalar = -(1 + minimumRestitution) * velocityAlongNormal;
+
+          // Distributes our Impulse Scalar, by each object's Mass
+          impulseScalar /= (manifold.ObjectA.InverseMass + manifold.ObjectB.InverseMass);
+
+          // Apply impulse
+          const impulse = manifold.Normal.MultiplyN(impulseScalar);
+          manifold.ObjectA.ApplyLinearImpulse(impulse.MultiplyN(-1));
+          manifold.ObjectB.ApplyLinearImpulse(impulse);
+
+        }
 
         // To Test Collision With
         const squares = [
-            new Square(new Vector2(70.0, 20.0), 30, 30, 1, false),
-            new Square(new Vector2(70.0, 70.0), 40, 30, 1, true),           
+            new Square(new Vector2(70.0, 120.0), 30, 30, 1, 0.1, false),
+            new Square(new Vector2(70.0, 70.0), 40, 30, 1, 0.9, true),
         ]
 
         // Main Entry
@@ -38,24 +158,42 @@
               // Iterate our Squares
               for(let square of squares) {
 
-                // COMPUTE EXTERNAL FORCES
+                /*
+                  CHECK COLLISIONS
+                */
+                for(let otherSquare of squares) {
+                  if(square != otherSquare) {
+                    let {collided, manifold} = AABBvsAABB(square, otherSquare);
+                    //square._AABB.CollidesWithAABB(squareOther._AABB)) {
+                    if(collided) {                    
+                      ResolveCollision(manifold); //square, squareOther);
+                      PositionalCorrection(manifold); //square, squareOther);
+                    }
+                  }
+                }
+
+                /*
+                  COMPUTE EXTERNAL FORCES
+                */
 
                 // Gravitational Force = mass * -9.81
                 let gravitationalForce = new Vector2(0.0, square.Mass * -9.81);
 
                 // acceleration = force / mass
-                let acceleration = gravitationalForce / square.Mass;
+                let acceleration = gravitationalForce.DivideN(square.Mass);
 
-                // APPLY FORCES
-
+                /*
+                  APPLY FORCES
+                */              
+                
                 // velocity = acceleration * dt
-                square.UpdateLinearVelocity(acceleration * this.WorldStep);
+                square.UpdateLinearVelocity(acceleration.MultiplyN(step));
 
                 // position = veloctity * dt
-                square.UpdatePosition(this.WorldStep);
+                square.UpdatePosition(step);
 
                 // Render
-                square.Draw(context);
+                square.Draw(context, canvas);
 
               }
 
