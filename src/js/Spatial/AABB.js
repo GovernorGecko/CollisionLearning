@@ -3,12 +3,9 @@
         Vector2, Vector2
 */
 class AABB {
-    constructor(min, max,) {
+    constructor(min, max) {
         this._min = min;
         this._max = max;
-
-        // Simple Direction/Velocity transform
-        this._transform = new Vector2(0.0, 0.0);
     }
 
     // Center
@@ -21,7 +18,7 @@ class AABB {
 
     // Maximum
     get Max() {
-        return this._max.AddN(this._transform)
+        return this._max
     }
 
     // Maximum Base
@@ -31,7 +28,7 @@ class AABB {
 
     // Minimum
     get Min() {
-        return this._min.AddN(this._transform)
+        return this._min
     }
 
     // Minimum Base
@@ -64,7 +61,10 @@ class AABB {
     // that allow rotations and the such, but we just want
     // direction/velocity.
     Transform(transform) {
-        this._transform = transform;        
+        return new AABB(
+            this._min.AddN(transform),
+            this._max.AddN(transform)
+        )
     }
 
 }
