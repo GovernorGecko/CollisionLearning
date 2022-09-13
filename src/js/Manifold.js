@@ -1,10 +1,10 @@
 /*
     Manifold, represents the Collision information
-    between two objects.
-        Shape, Shape, Float, Vector2
+    between two Bodies.
+        Body, Body, Float, Vector2
 */
-class Manifold
-{
+class Manifold {
+    
     constructor(objectA, objectB, penetration, normal) {
         this.ObjectA = objectA;
         this.ObjectB = objectB;

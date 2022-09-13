@@ -3,10 +3,12 @@
   <head>
     <meta charset="utf-8"/>
     <title>Collision Learning</title>
-    <script src="js/AABB.js"></script>
+    <script src="js/Body.js"></script>
     <script src="js/Manifold.js"></script>
-    <script src="js/Square.js"></script>
-    <script src="js/Vector2.js"></script>    
+    <script src="js/Spatial/AABB.js"></script>
+    <script src="js/Shapes/Slope.js"></script>
+    <script src="js/Shapes/Square.js"></script>
+    <script src="js/Spatial/Vector2.js"></script>    
     <script>
 
         /*
@@ -16,8 +18,7 @@
         */
 
         // Collision/Manifold Generation
-        // bool AABBvsAABB( Manifold *m )
-        const AABBvsAABB = (objectA, objectB) => {
+        const AABBvsAABB = (objectA, objectB, aabbA, aabbB, positionA, positionB) => {
 
           // Did we detect a collision?
           let collided = false;
@@ -26,11 +27,11 @@
           const manifold = new Manifold(objectA, objectB, 0, new Vector2(0, 0));
           
           // Distance vector from A to B
-          const distance = objectB.Position.SubtractN(objectA.Position);
+          const distance = positionB.SubtractN(positionA);
           
           // Calculate half extents along x axis for each object
-          let xExtentA = (objectA._AABB.Max.X - objectA._AABB.Min.X) / 2;
-          let xExtentB = (objectB._AABB.Max.X - objectB._AABB.Min.X) / 2;
+          let xExtentA = (aabbA.Max.X - aabbA.Min.X) / 2;
+          let xExtentB = (aabbB.Max.X - aabbB.Min.X) / 2;
           
           // Calculate overlap on x axis
           let xOverlap = xExtentA + xExtentB - Math.abs(distance.X);
@@ -39,8 +40,8 @@
           if(xOverlap > 0) {
 
             // Calculate half extents along x axis for each object
-            let yExtentA = (objectA._AABB.Max.Y - objectA._AABB.Min.Y) / 2;
-            let yExtentB = (objectB._AABB.Max.Y - objectB._AABB.Min.Y) / 2;
+            let yExtentA = (aabbA.Max.Y - aabbA.Min.Y) / 2;
+            let yExtentB = (aabbB.Max.Y - aabbB.Min.Y) / 2;
           
             // Calculate overlap on y axis
             let yOverlap = yExtentA + yExtentB - Math.abs(distance.Y);
@@ -85,9 +86,21 @@
         }
 
         // To Test Collision With
-        const squares = [
-            new Square(new Vector2(70.0, 120.0), 30, 30, 1, 0.1, false),
-            new Square(new Vector2(70.0, 70.0), 40, 30, 1, 0.9, true),
+        const bodies = [
+          new Body(
+            new Square(30, 30),
+            new Vector2(70.0, 120.0),
+            1,
+            0.1,
+            false
+          ),
+          new Body(
+            new Square(40, 30),
+            new Vector2(70.0, 70.0),
+            1,
+            0.9,
+            true
+          ),
         ]
 
         /*
@@ -148,36 +161,46 @@
           */
           const Physics = () => {
 
-            for(let square of squares) {
+            for(let body of bodies) {
+              
+              for(let otherBody of bodies) {   
+                    
+                // BroadPhase  
+                if(body != otherBody && body.Shape.GetBoundingBox().CollidesWithAABB(otherBody.Shape.GetBoundingBox())) {                                         
 
-              /*
-                CHECK COLLISIONS
-              */
-              for(let otherSquare of squares) {
-                if(square != otherSquare) {
-                  let {collided, manifold} = AABBvsAABB(square, otherSquare);
-                  if(collided) {     
-                    manifold.Resolve();
-                  }
+                    // NarrowPhase
+                    for(let contact of body.Shape.GetContacts()) {
+
+                      let {collided, manifold} = AABBvsAABB(
+                        body,
+                        otherBody,
+                        body.Shape.GetBoundingBox(),
+                        contact,
+                        body.Position,
+                        otherBody.Position
+                      );  
+
+                      if(collided) {
+                        manifold.Resolve();
+                      }
+
+                    }                    
+                    
                 }
-              }
 
-              // COMPUTE EXTERNAL FORCES             
+              }              
 
               // Gravitational Force = mass * -9.81
-              let gravitationalForce = new Vector2(0.0, square.Mass * -9.81);
+              let gravitationalForce = new Vector2(0.0, body.Mass * -9.81);
 
               // acceleration = force / mass
-              let acceleration = gravitationalForce.DivideN(square.Mass);
-
-              
-              // APPLY FORCES              
+              let acceleration = gravitationalForce.DivideN(body.Mass);     
 
               // velocity = acceleration * dt
-              square.UpdateLinearVelocity(acceleration.MultiplyN(dt));
+              body.UpdateLinearVelocity(acceleration.MultiplyN(dt));
 
               // position = veloctity * dt
-              square.UpdatePosition(dt);                
+              body.UpdatePosition(dt);                
 
             }
 
@@ -191,8 +214,8 @@
             context.clearRect(0, 0, canvas.width, canvas.height);
 
             // Draw
-            for(let square of squares) {                
-              square.Draw(context, canvas);
+            for(let body of bodies) {                
+              body.Draw(context, canvas);
             }
 
           }
